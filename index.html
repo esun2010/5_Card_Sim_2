@@ -1,170 +1,214 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Poker Hand Simulator</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#111; color:#eee; padding:20px; }
-    h1 { margin-bottom:5px; }
-    #hand { display:flex; gap:10px; margin:15px 0; }
-    .card {
-      width:60px; height:90px; border-radius:6px; border:1px solid #555;
-      display:flex; flex-direction:column; justify-content:space-between;
-      padding:5px; background:#fff; color:#000; font-weight:bold; text-align:center;
-    }
-    .hearts, .diamonds { color:#c00; }
-    .clubs, .spades { color:#000; }
-    table { border-collapse:collapse; margin-top:10px; }
-    th, td { border:1px solid #555; padding:4px 8px; text-align:left; }
-    th { background:#222; }
-    #status { margin-top:10px; font-size:0.9rem; color:#aaa; }
-  </style>
+<meta charset="UTF-8" />
+<title>Poker Hand Simulator</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#111; color:#eee; padding:20px; }
+  h1 { margin-bottom:5px; }
+  #hand { display:flex; gap:10px; margin:15px 0; }
+  .card {
+    width:60px; height:90px; border-radius:6px; border:1px solid #555;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:5px; background:#fff; color:#000; font-weight:bold; text-align:center;
+    opacity:0; transform:translateY(-20px);
+    transition:opacity 0.3s ease, transform 0.3s ease;
+  }
+  .card.show {
+    opacity:1; transform:translateY(0);
+  }
+  .hearts, .diamonds { color:#c00; }
+  .clubs, .spades { color:#000; }
+  table { border-collapse:collapse; margin-top:10px; }
+  th, td { border:1px solid #555; padding:4px 8px; text-align:left; }
+  th { background:#222; }
+  #status { margin-top:10px; font-size:0.9rem; color:#aaa; }
+  #speedControl { margin-top:15px; }
+</style>
 </head>
 <body>
-  <h1>Poker Hand Simulator</h1>
-  <p>Draws a random 5‑card hand every second and counts the frequency of each hand type.</p>
 
-  <div id="hand"></div>
+<h1>Poker Hand Simulator</h1>
+<p>Animated dealing, adjustable speed, and probability tracking.</p>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Hand Type</th>
-        <th>Count</th>
-      </tr>
-    </thead>
-    <tbody id="counts"></tbody>
-  </table>
+<div id="speedControl">
+  <label>Hands per second: <span id="speedLabel">1</span></label><br>
+  <input type="range" id="speedSlider" min="1" max="50" value="1">
+</div>
 
-  <div id="status"></div>
+<div id="hand"></div>
 
-  <script>
-    // ----- Setup deck -----
-    const suits = ["♠", "♥", "♦", "♣"];
-    const suitNames = ["spades", "hearts", "diamonds", "clubs"];
-    const ranks = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
-    const rankValues = { "2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"J":11,"Q":12,"K":13,"A":14 };
+<table>
+  <thead>
+    <tr>
+      <th>Hand Type</th>
+      <th>Count</th>
+      <th>Theoretical Chance</th>
+    </tr>
+  </thead>
+  <tbody id="counts"></tbody>
+</table>
 
-    const handTypes = [
-      "Royal Flush",
-      "Straight Flush",
-      "Four of a Kind",
-      "Full House",
-      "Flush",
-      "Straight",
-      "Three of a Kind",
-      "Two Pair",
-      "One Pair",
-      "High Card"
-    ];
+<div id="status"></div>
 
-    const counts = {};
-    handTypes.forEach(t => counts[t] = 0);
-    let totalHands = 0;
+<script>
+/* ------------------ Poker Setup ------------------ */
+const suits = ["♠", "♥", "♦", "♣"];
+const suitNames = ["spades", "hearts", "diamonds", "clubs"];
+const ranks = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+const rankValues = { "2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"J":11,"Q":12,"K":13,"A":14 };
 
-    function createDeck() {
-      const deck = [];
-      for (let s = 0; s < suits.length; s++) {
-        for (let r = 0; r < ranks.length; r++) {
-          deck.push({ rank: ranks[r], suit: suits[s], suitName: suitNames[s] });
-        }
-      }
-      return deck;
+const handTypes = [
+  "Royal Flush",
+  "Straight Flush",
+  "Four of a Kind",
+  "Full House",
+  "Flush",
+  "Straight",
+  "Three of a Kind",
+  "Two Pair",
+  "One Pair",
+  "High Card"
+];
+
+// Theoretical probabilities (5-card poker)
+const theoretical = {
+  "Royal Flush": "0.000154%",
+  "Straight Flush": "0.00139%",
+  "Four of a Kind": "0.0240%",
+  "Full House": "0.1441%",
+  "Flush": "0.1965%",
+  "Straight": "0.3925%",
+  "Three of a Kind": "2.1128%",
+  "Two Pair": "4.7539%",
+  "One Pair": "42.2569%",
+  "High Card": "50.1177%"
+};
+
+const counts = {};
+handTypes.forEach(t => counts[t] = 0);
+let totalHands = 0;
+
+/* ------------------ Deck Functions ------------------ */
+function createDeck() {
+  const deck = [];
+  for (let s = 0; s < suits.length; s++) {
+    for (let r = 0; r < ranks.length; r++) {
+      deck.push({ rank: ranks[r], suit: suits[s], suitName: suitNames[s] });
     }
- 
-    function drawHand() {
-      const deck = createDeck();
-      const hand = [];
-      for (let i = 0; i < 5; i++) {
-        const idx = Math.floor(Math.random() * deck.length);
-        hand.push(deck.splice(idx, 1)[0]);
-      }
-      return hand;
-    }
+  }
+  return deck;
+}
 
-    // ----- Hand evaluation -----
-    function evaluateHand(hand) {
-      const values = hand.map(c => rankValues[c.rank]).sort((a,b) => a-b);
-      const suitsArr = hand.map(c => c.suit);
-      const countsByRank = {};
-      values.forEach(v => countsByRank[v] = (countsByRank[v] || 0) + 1);
+function drawHand() {
+  const deck = createDeck();
+  const hand = [];
+  for (let i = 0; i < 5; i++) {
+    const idx = Math.floor(Math.random() * deck.length);
+    hand.push(deck.splice(idx, 1)[0]);
+  }
+  return hand;
+}
 
-      const uniqueRanks = Object.keys(countsByRank).map(Number).sort((a,b)=>a-b);
-      const freq = Object.values(countsByRank).sort((a,b)=>b-a); // e.g. [3,2] for full house
+/* ------------------ Hand Evaluation ------------------ */
+function evaluateHand(hand) {
+  const values = hand.map(c => rankValues[c.rank]).sort((a,b) => a-b);
+  const suitsArr = hand.map(c => c.suit);
+  const countsByRank = {};
+  values.forEach(v => countsByRank[v] = (countsByRank[v] || 0) + 1);
 
-      const isFlush = suitsArr.every(s => s === suitsArr[0]);
+  const uniqueRanks = Object.keys(countsByRank).map(Number).sort((a,b)=>a-b);
+  const freq = Object.values(countsByRank).sort((a,b)=>b-a);
 
-      // Straight check (including A-2-3-4-5)
-      let isStraight = false;
-      if (uniqueRanks.length === 5) {
-        const first = uniqueRanks[0];
-        const isRegular = uniqueRanks.every((v,i) => v === first + i);
-        const isWheel = JSON.stringify(uniqueRanks) === JSON.stringify([2,3,4,5,14]); // A-5 straight
-        isStraight = isRegular || isWheel;
-      }
+  const isFlush = suitsArr.every(s => s === suitsArr[0]);
 
-      const maxVal = Math.max(...values);
+  let isStraight = false;
+  if (uniqueRanks.length === 5) {
+    const first = uniqueRanks[0];
+    const isRegular = uniqueRanks.every((v,i) => v === first + i);
+    const isWheel = JSON.stringify(uniqueRanks) === JSON.stringify([2,3,4,5,14]);
+    isStraight = isRegular || isWheel;
+  }
 
-      if (isStraight && isFlush && maxVal === 14 && values.includes(10)) return "Royal Flush";
-      if (isStraight && isFlush) return "Straight Flush";
-      if (freq[0] === 4) return "Four of a Kind";
-      if (freq[0] === 3 && freq[1] === 2) return "Full House";
-      if (isFlush) return "Flush";
-      if (isStraight) return "Straight";
-      if (freq[0] === 3) return "Three of a Kind";
-      if (freq[0] === 2 && freq[1] === 2) return "Two Pair";
-      if (freq[0] === 2) return "One Pair";
-      return "High Card";
-    }
+  const maxVal = Math.max(...values);
 
-    // ----- Rendering -----
-    const handDiv = document.getElementById("hand");
-    const countsBody = document.getElementById("counts");
-    const statusDiv = document.getElementById("status");
+  if (isStraight && isFlush && maxVal === 14 && values.includes(10)) return "Royal Flush";
+  if (isStraight && isFlush) return "Straight Flush";
+  if (freq[0] === 4) return "Four of a Kind";
+  if (freq[0] === 3 && freq[1] === 2) return "Full House";
+  if (isFlush) return "Flush";
+  if (isStraight) return "Straight";
+  if (freq[0] === 3) return "Three of a Kind";
+  if (freq[0] === 2 && freq[1] === 2) return "Two Pair";
+  if (freq[0] === 2) return "One Pair";
+  return "High Card";
+}
 
-    function renderHand(hand, type) {
-      handDiv.innerHTML = "";
-      hand.forEach(card => {
-        const div = document.createElement("div");
-        div.className = "card " + card.suitName;
-        div.innerHTML = `
-          <div>${card.rank}</div>
-          <div>${card.suit}</div>
-        `;
-        handDiv.appendChild(div);
-      });
-      statusDiv.textContent = `Last hand: ${type} | Total hands: ${totalHands}`;
-    }
+/* ------------------ Rendering ------------------ */
+const handDiv = document.getElementById("hand");
+const countsBody = document.getElementById("counts");
+const statusDiv = document.getElementById("status");
 
-    function renderCounts() {
-      countsBody.innerHTML = "";
-      handTypes.forEach(type => {
-        const tr = document.createElement("tr");
-        const tdName = document.createElement("td");
-        const tdCount = document.createElement("td");
-        tdName.textContent = type;
-        tdCount.textContent = counts[type];
-        tr.appendChild(tdName);
-        tr.appendChild(tdCount);
-        countsBody.appendChild(tr);
-      });
-    }
+function renderHand(hand, type) {
+  handDiv.innerHTML = "";
+  hand.forEach((card, i) => {
+    const div = document.createElement("div");
+    div.className = "card " + card.suitName;
+    div.innerHTML = `<div>${card.rank}</div><div>${card.suit}</div>`;
+    handDiv.appendChild(div);
 
-    // ----- Main loop -----
-    function step() {
-      const hand = drawHand();
-      const type = evaluateHand(hand);
-      counts[type]++;
-      totalHands++;
-      renderHand(hand, type);
-      renderCounts();
-    }
+    // animate each card with slight delay
+    setTimeout(() => div.classList.add("show"), i * 100);
+  });
 
-    // Start drawing a hand every second
-    step();
-    setInterval(step, 1000);
-  </script>
+  statusDiv.textContent = `Last hand: ${type} | Total hands: ${totalHands}`;
+}
+
+function renderCounts() {
+  countsBody.innerHTML = "";
+  handTypes.forEach(type => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${type}</td>
+      <td>${counts[type]}</td>
+      <td>${theoretical[type]}</td>
+    `;
+    countsBody.appendChild(tr);
+  });
+}
+
+/* ------------------ Simulation Loop ------------------ */
+let interval = 1000;
+let timer = null;
+
+function step() {
+  const hand = drawHand();
+  const type = evaluateHand(hand);
+  counts[type]++;
+  totalHands++;
+  renderHand(hand, type);
+  renderCounts();
+}
+
+function startLoop() {
+  if (timer) clearInterval(timer);
+  timer = setInterval(step, interval);
+}
+
+step();
+startLoop();
+
+/* ------------------ Speed Slider ------------------ */
+const slider = document.getElementById("speedSlider");
+const speedLabel = document.getElementById("speedLabel");
+
+slider.addEventListener("input", () => {
+  const val = Number(slider.value);
+  speedLabel.textContent = val;
+  interval = 1000 / val;
+  startLoop();
+});
+</script>
+
 </body>
 </html>
-```
