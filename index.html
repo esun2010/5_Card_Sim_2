@@ -204,14 +204,36 @@ const handDiv = document.getElementById("hand");
 const countsBody = document.getElementById("counts");
 const statusDiv = document.getElementById("status");
 
-function renderHand(hand, type, showCards) {
+function randomFakeCard() {
+  const rank = ranks[Math.floor(Math.random() * ranks.length)];
+  const suitIndex = Math.floor(Math.random() * suits.length);
+  return {
+    rank,
+    suit: suits[suitIndex],
+    suitName: suitNames[suitIndex]
+  };
+}
+  
+  
+function renderHand(hand, type, showRealCards) {
   handDiv.innerHTML = "";
 
-  if (!showCards) {
-    statusDiv.textContent = `Last hand: ${type} | Total hands: ${totalHands}`;
+  if (!showRealCards) {
+    // Flash random cards instead of showing real ones
+    for (let i = 0; i < 5; i++) {
+      const fake = randomFakeCard();
+      const div = document.createElement("div");
+      div.className = "card " + fake.suitName;
+      div.innerHTML = `<div>${fake.rank}</div><div>${fake.suit}</div>`;
+      div.style.opacity = 1; // no animation
+      handDiv.appendChild(div);
+    }
+
+    statusDiv.textContent = `Speed mode: flashing cards | Total hands: ${totalHands}`;
     return;
   }
 
+  // Normal animated dealing
   hand.forEach((card, i) => {
     const div = document.createElement("div");
     div.className = "card " + card.suitName;
@@ -223,6 +245,7 @@ function renderHand(hand, type, showCards) {
 
   statusDiv.textContent = `Last hand: ${type} | Total hands: ${totalHands}`;
 }
+
 
 function renderCounts() {
   countsBody.innerHTML = "";
@@ -247,7 +270,7 @@ function step() {
   counts[type]++;
   totalHands++;
 
-  const showCards = interval >= 1000; // only show cards at ≤1 hand/sec
+  const showCards = interval >= 1000; // real cards only at 1 hand/sec
   renderHand(hand, type, showCards);
   renderCounts();
 }
