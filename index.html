@@ -3,32 +3,96 @@
 <head>
 <meta charset="UTF-8" />
 <title>Poker Hand Simulator</title>
+
+<!-- Casino-style fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
+
 <style>
-  body { font-family: Arial, sans-serif; background:#111; color:#eee; padding:20px; }
-  h1 { margin-bottom:5px; }
-  #hand { display:flex; gap:10px; margin:15px 0; }
+  body {
+    font-family: 'Playfair Display', serif;
+    background:#0b0b0b;
+    color:#f5e9c9;
+    padding:20px;
+    text-align:center;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 42px;
+    margin-bottom: 5px;
+    color: #ffd700;
+    text-shadow: 0 0 10px #d4af37;
+  }
+
+  #hand {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin:20px auto;
+    min-height:110px;
+  }
+
   .card {
-    width:60px; height:90px; border-radius:6px; border:1px solid #555;
-    display:flex; flex-direction:column; justify-content:space-between;
-    padding:5px; background:#fff; color:#000; font-weight:bold; text-align:center;
-    opacity:0; transform:translateY(-20px);
+    width:70px; height:100px;
+    border-radius:8px;
+    border:2px solid #d4af37;
+    background:#fff;
+    color:#000;
+    font-weight:bold;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    padding:6px;
+    opacity:0;
+    transform:translateY(-20px);
     transition:opacity 0.3s ease, transform 0.3s ease;
   }
+
   .card.show {
-    opacity:1; transform:translateY(0);
+    opacity:1;
+    transform:translateY(0);
   }
+
   .hearts, .diamonds { color:#c00; }
   .clubs, .spades { color:#000; }
-  table { border-collapse:collapse; margin-top:10px; }
-  th, td { border:1px solid #555; padding:4px 8px; text-align:left; }
-  th { background:#222; }
-  #status { margin-top:10px; font-size:0.9rem; color:#aaa; }
-  #speedControl { margin-top:15px; }
+
+  table {
+    margin:20px auto;
+    border-collapse:collapse;
+    width:60%;
+    min-width:350px;
+  }
+
+  th, td {
+    border:1px solid #d4af37;
+    padding:6px 10px;
+  }
+
+  th {
+    background:#1a1a1a;
+    color:#ffd700;
+    font-family:'Cinzel', serif;
+  }
+
+  #speedControl {
+    margin-top:20px;
+    font-size:18px;
+  }
+
+  #status {
+    margin-top:15px;
+    font-size:16px;
+    color:#e0d7b8;
+  }
+
+  input[type=range] {
+    width:300px;
+  }
 </style>
 </head>
 <body>
 
-<h1>Poker Hand Simulator</h1>
+<h1>Casino Poker Simulator</h1>
 <p>Animated dealing, adjustable speed, and probability tracking.</p>
 
 <div id="speedControl">
@@ -59,19 +123,10 @@ const ranks = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 const rankValues = { "2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"J":11,"Q":12,"K":13,"A":14 };
 
 const handTypes = [
-  "Royal Flush",
-  "Straight Flush",
-  "Four of a Kind",
-  "Full House",
-  "Flush",
-  "Straight",
-  "Three of a Kind",
-  "Two Pair",
-  "One Pair",
-  "High Card"
+  "Royal Flush","Straight Flush","Four of a Kind","Full House",
+  "Flush","Straight","Three of a Kind","Two Pair","One Pair","High Card"
 ];
 
-// Theoretical probabilities (5-card poker)
 const theoretical = {
   "Royal Flush": "0.000154%",
   "Straight Flush": "0.00139%",
@@ -149,15 +204,20 @@ const handDiv = document.getElementById("hand");
 const countsBody = document.getElementById("counts");
 const statusDiv = document.getElementById("status");
 
-function renderHand(hand, type) {
+function renderHand(hand, type, showCards) {
   handDiv.innerHTML = "";
+
+  if (!showCards) {
+    statusDiv.textContent = `Last hand: ${type} | Total hands: ${totalHands}`;
+    return;
+  }
+
   hand.forEach((card, i) => {
     const div = document.createElement("div");
     div.className = "card " + card.suitName;
     div.innerHTML = `<div>${card.rank}</div><div>${card.suit}</div>`;
     handDiv.appendChild(div);
 
-    // animate each card with slight delay
     setTimeout(() => div.classList.add("show"), i * 100);
   });
 
@@ -167,13 +227,13 @@ function renderHand(hand, type) {
 function renderCounts() {
   countsBody.innerHTML = "";
   handTypes.forEach(type => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${type}</td>
-      <td>${counts[type]}</td>
-      <td>${theoretical[type]}</td>
+    countsBody.innerHTML += `
+      <tr>
+        <td>${type}</td>
+        <td>${counts[type]}</td>
+        <td>${theoretical[type]}</td>
+      </tr>
     `;
-    countsBody.appendChild(tr);
   });
 }
 
@@ -186,7 +246,9 @@ function step() {
   const type = evaluateHand(hand);
   counts[type]++;
   totalHands++;
-  renderHand(hand, type);
+
+  const showCards = interval >= 1000; // only show cards at ≤1 hand/sec
+  renderHand(hand, type, showCards);
   renderCounts();
 }
 
