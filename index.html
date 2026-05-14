@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Poker Hand Simulator</title>
+<title>Casino Poker Simulator</title>
 
 <!-- Casino-style fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
@@ -88,12 +88,26 @@
   input[type=range] {
     width:300px;
   }
+
+  #startBtn {
+    margin-top:20px;
+    padding:10px 25px;
+    font-size:20px;
+    font-family:'Cinzel', serif;
+    background:#d4af37;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    color:#000;
+  }
 </style>
 </head>
 <body>
 
 <h1>Casino Poker Simulator</h1>
 <p>Animated dealing, adjustable speed, and probability tracking.</p>
+
+<button id="startBtn">START SIMULATION</button>
 
 <div id="speedControl">
   <label>Hands per second: <span id="speedLabel">1</span></label><br>
@@ -143,6 +157,7 @@ const theoretical = {
 const counts = {};
 handTypes.forEach(t => counts[t] = 0);
 let totalHands = 0;
+let running = false;
 
 /* ------------------ Deck Functions ------------------ */
 function createDeck() {
@@ -163,6 +178,17 @@ function drawHand() {
     hand.push(deck.splice(idx, 1)[0]);
   }
   return hand;
+}
+
+/* ------------------ Fake Cards for Flashing ------------------ */
+function randomFakeCard() {
+  const rank = ranks[Math.floor(Math.random() * ranks.length)];
+  const suitIndex = Math.floor(Math.random() * suits.length);
+  return {
+    rank,
+    suit: suits[suitIndex],
+    suitName: suitNames[suitIndex]
+  };
 }
 
 /* ------------------ Hand Evaluation ------------------ */
@@ -204,28 +230,17 @@ const handDiv = document.getElementById("hand");
 const countsBody = document.getElementById("counts");
 const statusDiv = document.getElementById("status");
 
-function randomFakeCard() {
-  const rank = ranks[Math.floor(Math.random() * ranks.length)];
-  const suitIndex = Math.floor(Math.random() * suits.length);
-  return {
-    rank,
-    suit: suits[suitIndex],
-    suitName: suitNames[suitIndex]
-  };
-}
-  
-  
 function renderHand(hand, type, showRealCards) {
   handDiv.innerHTML = "";
 
   if (!showRealCards) {
-    // Flash random cards instead of showing real ones
+    // Flash random cards
     for (let i = 0; i < 5; i++) {
       const fake = randomFakeCard();
       const div = document.createElement("div");
       div.className = "card " + fake.suitName;
       div.innerHTML = `<div>${fake.rank}</div><div>${fake.suit}</div>`;
-      div.style.opacity = 1; // no animation
+      div.style.opacity = 1;
       handDiv.appendChild(div);
     }
 
@@ -246,7 +261,6 @@ function renderHand(hand, type, showRealCards) {
   statusDiv.textContent = `Last hand: ${type} | Total hands: ${totalHands}`;
 }
 
-
 function renderCounts() {
   countsBody.innerHTML = "";
   handTypes.forEach(type => {
@@ -265,12 +279,14 @@ let interval = 1000;
 let timer = null;
 
 function step() {
+  if (!running) return;
+
   const hand = drawHand();
   const type = evaluateHand(hand);
   counts[type]++;
   totalHands++;
 
-  const showCards = interval >= 1000; // real cards only at 1 hand/sec
+  const showCards = interval >= 1000;
   renderHand(hand, type, showCards);
   renderCounts();
 }
@@ -280,8 +296,12 @@ function startLoop() {
   timer = setInterval(step, interval);
 }
 
-step();
-startLoop();
+/* ------------------ Start Button ------------------ */
+document.getElementById("startBtn").addEventListener("click", () => {
+  running = true;
+  step();
+  startLoop();
+});
 
 /* ------------------ Speed Slider ------------------ */
 const slider = document.getElementById("speedSlider");
