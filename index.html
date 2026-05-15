@@ -123,6 +123,12 @@
   cursor:pointer;
   color:#000;
   transition:0.2s ease;
+
+  height:48px;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 #startBtn:hover,
@@ -307,7 +313,7 @@ function renderHand(hand, type, showRealCards) {
     }
 
     statusDiv.textContent =
-      `Last hand: ${fakeType} | Speed mode: flashing cards | Total hands: ${totalHands}`;
+      `Last hand: ${fakeType} | Total hands: ${totalHands}`;
 
     return;
   }
