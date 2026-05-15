@@ -103,12 +103,14 @@
   #buttonContainer {
   display:flex;
   justify-content:center;
+  align-items:center;
   gap:15px;
   margin-top:20px;
 }
 
 #drawBtn {
   display:none;
+  margin:0;
 }
 
 /* Shared casino button styling */
@@ -144,7 +146,7 @@
 
 <div id="buttonContainer">
   <button id="startBtn">START SIMULATION</button>
-  <button id="drawBtn">DRAW 5 CARDS</button>
+  <button id="drawBtn" style="display:none;">DRAW 5 CARDS</button>
 </div>
 
 <div id="speedControl">
