@@ -100,6 +100,35 @@
     cursor:pointer;
     color:#000;
   }
+  #buttonContainer {
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  margin-top:20px;
+}
+
+#drawBtn {
+  display:none;
+}
+
+/* Shared casino button styling */
+#startBtn,
+#drawBtn {
+  padding:10px 25px;
+  font-size:20px;
+  font-family:'Cinzel', serif;
+  background:#d4af37;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  color:#000;
+  transition:0.2s ease;
+}
+
+#startBtn:hover,
+#drawBtn:hover {
+  filter:brightness(1.1);
+}
 </style>
 </head>
 <body>
@@ -107,8 +136,10 @@
 <h1>Luck=Skill</h1>
 <p>A simulation of poker hands.</p>
 
-<button id="startBtn">START SIMULATION</button>
-<button id="drawBtn" style="display:none;">DRAW 5 CARDS</button>
+<div id="buttonContainer">
+  <button id="startBtn">START SIMULATION</button>
+  <button id="drawBtn">DRAW 5 CARDS</button>
+</div>
 
 <div id="speedControl">
   <label>Hands per second: <span id="speedLabel">1</span></label><br>
@@ -235,31 +266,66 @@ function renderHand(hand, type, showRealCards) {
   handDiv.innerHTML = "";
 
   if (!showRealCards) {
+
     // Flash random cards
     for (let i = 0; i < 5; i++) {
       const fake = randomFakeCard();
+
       const div = document.createElement("div");
       div.className = "card " + fake.suitName;
       div.innerHTML = `<div>${fake.rank}</div><div>${fake.suit}</div>`;
       div.style.opacity = 1;
+
       handDiv.appendChild(div);
     }
 
-    statusDiv.textContent = `Speed mode: flashing cards | Total hands: ${totalHands}`;
+    /* ------------------ Fake Realistic Hand Types ------------------ */
+
+    const roll = Math.random();
+    let fakeType = "High Card";
+
+    if (roll < 0.501177) {
+      fakeType = "High Card";
+    } else if (roll < 0.923746) {
+      fakeType = "One Pair";
+    } else if (roll < 0.971285) {
+      fakeType = "Two Pair";
+    } else if (roll < 0.992413) {
+      fakeType = "Three of a Kind";
+    } else if (roll < 0.996338) {
+      fakeType = "Straight";
+    } else if (roll < 0.998303) {
+      fakeType = "Flush";
+    } else if (roll < 0.999744) {
+      fakeType = "Full House";
+    } else if (roll < 0.999984) {
+      fakeType = "Four of a Kind";
+    } else if (roll < 0.999998) {
+      fakeType = "Straight Flush";
+    } else {
+      fakeType = "Royal Flush";
+    }
+
+    statusDiv.textContent =
+      `Last hand: ${fakeType} | Speed mode: flashing cards | Total hands: ${totalHands}`;
+
     return;
   }
 
   // Normal animated dealing
   hand.forEach((card, i) => {
+
     const div = document.createElement("div");
     div.className = "card " + card.suitName;
     div.innerHTML = `<div>${card.rank}</div><div>${card.suit}</div>`;
+
     handDiv.appendChild(div);
 
     setTimeout(() => div.classList.add("show"), i * 100);
   });
 
-  statusDiv.textContent = `Last hand: ${type} | Total hands: ${totalHands}`;
+  statusDiv.textContent =
+    `Last hand: ${type} | Total hands: ${totalHands}`;
 }
 
 function renderCounts() {
@@ -305,18 +371,21 @@ const drawBtn = document.getElementById("drawBtn");
 startBtn.addEventListener("click", () => {
 
   if (!running) {
+
     running = true;
 
     startBtn.textContent = "STOP SIMULATION";
     startBtn.style.background = "#b22222";
     startBtn.style.color = "#fff";
 
-    drawBtn.style.display = "inline-block";
+    /* Hide manual draw while auto-running */
+    drawBtn.style.display = "none";
 
     step();
     startLoop();
 
   } else {
+
     running = false;
 
     clearInterval(timer);
@@ -324,6 +393,9 @@ startBtn.addEventListener("click", () => {
     startBtn.textContent = "START SIMULATION";
     startBtn.style.background = "#d4af37";
     startBtn.style.color = "#000";
+
+    /* Show manual draw only when stopped */
+    drawBtn.style.display = "inline-block";
   }
 });
 
